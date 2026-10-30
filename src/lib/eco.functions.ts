@@ -56,7 +56,12 @@ For each product give an Eco Score from 0-100 judging: materials (recycled/organ
 Estimate co2Kg = approximate lifecycle kg CO2e of the product. Give 2-4 short reasons for the score.
 If ecoScore < 50, you MUST include 1-3 real, better alternatives found online with higher scores, why they are better and estimated co2SavedKg vs the original. Otherwise alternatives = [].
 Use real product page URLs from your search. Prices with currency symbol. If the user mentions a country or currency, prefer stores there; default to India (₹) stores like Amazon.in, Flipkart, brand sites.
-summary: 1-2 sentences of eco advice about this purchase.`;
+summary: ONE short sentence of eco advice (max 30 words).
+Include at least 2 conventional/low-impact-unaware products (often single-use plastic, fast fashion, non-certified) so low scores and greener swaps can be shown.
+Never put citations, URLs or markdown links inside text fields; keep each reason under 15 words.`;
+
+const clean = (t: string) =>
+  t.replace(/\(?\[[^\]]*\]\([^)]*\)\)?/g, "").replace(/https?:\/\/\S+/g, "").replace(/\s{2,}/g, " ").trim();
 
 export const searchProducts = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ query: z.string().trim().min(2).max(300) }).parse(d))
@@ -73,9 +78,12 @@ export const searchProducts = createServerFn({ method: "POST" })
       parsed.products = parsed.products.map((p) => ({
         ...p,
         ecoScore: Math.max(0, Math.min(100, Math.round(p.ecoScore))),
+        reasons: p.reasons.map(clean).filter(Boolean),
+        materials: clean(p.materials),
         url: p.url.replace(/[?&]utm_source=openai/, ""),
-        alternatives: p.alternatives.map((a) => ({ ...a, url: a.url.replace(/[?&]utm_source=openai/, "") })),
+        alternatives: p.alternatives.map((a) => ({ ...a, whyBetter: clean(a.whyBetter), url: a.url.replace(/[?&]utm_source=openai/, "") })),
       }));
+      parsed.summary = clean(parsed.summary);
       return parsed;
     } catch (e) {
       console.error("searchProducts failed", e);
