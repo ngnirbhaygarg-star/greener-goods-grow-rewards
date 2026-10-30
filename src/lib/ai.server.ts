@@ -9,7 +9,7 @@ export class AiError extends Error {
 }
 
 export async function runResponses(body: Record<string, unknown>): Promise<string> {
-  const key = process.env.LOVABLE_API_KEY;
+  const key = process.env['LOVABLE_API_KEY'];
   if (!key) throw new AiError(401, "AI is not configured.");
   const res = await fetch(GATEWAY, {
     method: "POST",
